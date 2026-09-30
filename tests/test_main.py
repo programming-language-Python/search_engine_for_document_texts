@@ -25,7 +25,7 @@ async def test_delete_no_existing_document(test_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_existing_document(test_client: AsyncClient):
-    response = await test_client.delete("/document/1")
+    response = await test_client.delete("/document/1588")
     assert response.status_code == 200
 
 
