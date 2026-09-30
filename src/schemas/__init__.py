@@ -1,1 +1,1 @@
-from document_schema import DocumentSchema
+from .document_schema import DocumentSchema

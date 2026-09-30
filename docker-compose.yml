@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: seft-postgres
+    env_file:
+      - .env.postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.0
+    container_name: seft-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      target: app
+    container_name: seft-app
+    env_file:
+      - .env.docker
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      ES_HOST: elasticsearch
+      ES_PORT: 9200
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  tests:
+    profiles: ["test"]
+    build:
+      context: .
+      target: tests
+    container_name: seft-tests
+    working_dir: /app
+    env_file:
+      - .env.docker
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASS: password
+      DB_NAME: documents
+      ES_HOST: elasticsearch
+      ES_PORT: 9200
+    volumes:
+      - ./tests:/app/tests
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  elasticsearch-data:
