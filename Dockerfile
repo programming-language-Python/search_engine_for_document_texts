@@ -21,7 +21,7 @@ COPY src ./src
 COPY data ./data
 COPY load_documents.sql ./load_documents.sql
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 FROM base AS app
 
